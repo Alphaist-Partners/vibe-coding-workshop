@@ -1,0 +1,121 @@
+/**
+ * content.css — 划词卡片 UI 样式
+ */
+
+/* Loading 蒙层 */
+#share-card-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(2px);
+}
+
+.sc-loading-inner {
+  background: #fff;
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #333;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  font-family: -apple-system, "Segoe UI", sans-serif;
+}
+
+/* 预览蒙层 */
+#share-card-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  animation: sc-fade-in 0.2s ease;
+}
+
+@keyframes sc-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* 预览容器 */
+.sc-preview-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+/* 成功 toast */
+.sc-toast {
+  background: #10b981;
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  transition: opacity 0.3s ease;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* 卡片图片 */
+.sc-preview-img-wrap {
+  max-height: 70vh;
+  overflow: auto;
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25);
+}
+
+.sc-preview-img-wrap img {
+  display: block;
+  max-width: 720px;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+
+/* 操作按钮 */
+.sc-preview-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.sc-btn {
+  border: none;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: -apple-system, "Segoe UI", sans-serif;
+  transition: all 0.15s ease;
+}
+
+.sc-btn:hover {
+  transform: translateY(-1px);
+}
+
+.sc-btn-copy {
+  background: #4F46E5;
+  color: #fff;
+}
+
+.sc-btn-copy:hover {
+  background: #4338CA;
+}
+
+.sc-btn-close {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.sc-btn-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}

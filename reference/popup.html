@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <h1>📌 划词卡片</h1>
+    <p class="subtitle">选中文字 → 右键 → 生成精美分享卡片</p>
+  </header>
+
+  <section id="stats">
+    <span class="stat-item">📊 已生成 <strong id="totalCount">0</strong> 张卡片</span>
+  </section>
+
+  <section id="history">
+    <h2>最近生成</h2>
+    <div id="historyList" class="history-grid">
+      <p class="empty-hint">暂无记录，去网页上选中文字试试吧 ✨</p>
+    </div>
+  </section>
+
+  <footer>
+    <button id="clearBtn" class="btn-text">🗑 清空历史</button>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
