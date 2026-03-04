@@ -19,3 +19,20 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     });
   }
 });
+
+// ---------------------------------------------------------------------------
+// 代理图片请求 — Service Worker 不受页面 CSP 限制
+// ---------------------------------------------------------------------------
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.action === "fetchImage" && message.url) {
+    fetch(message.url)
+      .then((r) => r.blob())
+      .then((blob) => {
+        const reader = new FileReader();
+        reader.onloadend = () => sendResponse({ dataUrl: reader.result });
+        reader.readAsDataURL(blob);
+      })
+      .catch((e) => sendResponse({ error: e.message }));
+    return true; // 保持 sendResponse 通道开放
+  }
+});

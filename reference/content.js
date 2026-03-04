@@ -64,15 +64,21 @@ async function handleGenerateCard() {
     // 3. 绘制 Canvas
     const canvas = await renderCard(info);
 
-    // 4. 复制到剪贴板
-    await copyCanvasToClipboard(canvas);
+    // 4. 尝试复制到剪贴板（失败不阻断流程）
+    let copied = false;
+    try {
+      await copyCanvasToClipboard(canvas);
+      copied = true;
+    } catch (e) {
+      console.warn("剪贴板写入失败（该网站 CSP 可能限制了此操作）:", e);
+    }
 
     // 5. 保存到历史记录
     await saveToHistory(info, canvas);
 
     // 6. 显示预览
     hideLoading();
-    showPreview(canvas);
+    showPreview(canvas, copied);
   } catch (err) {
     hideLoading();
     console.error("划词卡片生成失败:", err);
@@ -247,11 +253,16 @@ async function renderCard(info) {
   ctx.font = `${CONFIG.source.hintSize}px -apple-system, "Segoe UI", sans-serif`;
   ctx.fillText("扫码查看原文", sourceTextX, drawY + 36);
 
-  // 二维码
+  // 二维码 — 通过 background.js 中转获取，绕过页面 CSP 限制
   try {
-    const qrImg = await loadImage(
-      `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(info.pageUrl)}&size=${qrSize}x${qrSize}`
-    );
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(info.pageUrl)}&size=${qrSize}x${qrSize}`;
+    const dataUrl = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ action: "fetchImage", url: qrUrl }, (resp) => {
+        if (resp?.dataUrl) resolve(resp.dataUrl);
+        else reject(new Error(resp?.error || "QR fetch failed"));
+      });
+    });
+    const qrImg = await loadImage(dataUrl);
     ctx.drawImage(qrImg, qrX, drawY, qrSize, qrSize);
   } catch (e) {
     // 二维码加载失败，显示 URL 文字
@@ -377,16 +388,17 @@ function hideLoading() {
   if (el) el.remove();
 }
 
-function showPreview(canvas) {
+function showPreview(canvas, copied = true) {
   removeOverlay();
   const overlay = document.createElement("div");
   overlay.id = "share-card-overlay";
+  const toastText = copied ? "✅ 已复制到剪贴板" : "⚠️ 自动复制不可用，请右键图片保存";
   overlay.innerHTML = `
     <div class="sc-preview-container">
-      <div class="sc-toast">✅ 已复制到剪贴板</div>
+      <div class="sc-toast">${toastText}</div>
       <div class="sc-preview-img-wrap"></div>
       <div class="sc-preview-actions">
-        <button class="sc-btn sc-btn-copy">📋 再复制一次</button>
+        <button class="sc-btn sc-btn-copy">📋 复制到剪贴板</button>
         <button class="sc-btn sc-btn-close">✕ 关闭</button>
       </div>
     </div>
