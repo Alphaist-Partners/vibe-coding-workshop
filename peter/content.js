@@ -218,6 +218,34 @@ async function drawCard({ selected, before, after, title, url }) {
 }
 
 // =====================================================================
+// 历史记录
+// =====================================================================
+
+const HISTORY_KEY = 'cardHistory';
+const HISTORY_MAX = 30;
+
+/**
+ * 将卡片信息保存到 chrome.storage.local
+ * 用 JPEG 0.92 存储，节省空间（单张约 80~150 KB）
+ */
+async function saveToHistory({ selected, title, url, canvas }) {
+  const entry = {
+    id        : Date.now(),
+    text      : selected.slice(0, 100),
+    pageTitle : title,
+    pageUrl   : url,
+    imageDataUrl : canvas.toDataURL('image/jpeg', 0.92),
+    createdAt : new Date().toISOString(),
+  };
+
+  const { [HISTORY_KEY]: history = [] } = await chrome.storage.local.get(HISTORY_KEY);
+  history.unshift(entry);
+  if (history.length > HISTORY_MAX) history.length = HISTORY_MAX;
+  await chrome.storage.local.set({ [HISTORY_KEY]: history });
+  console.log(`[划词卡片] 📦 已保存历史记录，共 ${history.length} 条`);
+}
+
+// =====================================================================
 // 剪贴板
 // =====================================================================
 
@@ -395,7 +423,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         console.warn('[划词卡片] ⚠️ 自动复制失败：', err.message);
       }
 
-      // 5. 显示预览浮层
+      // 5. 保存到历史记录（后台静默，不阻塞 UI）
+      saveToHistory({ selected: data.selected, title: data.title, url: data.url, canvas })
+        .catch(err => console.warn('[划词卡片] ⚠️ 历史保存失败：', err.message));
+
+      // 6. 显示预览浮层
       showPreview(canvas, copied);
     })
     .catch((err) => {

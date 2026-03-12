@@ -8,7 +8,8 @@
     "contextMenus",
     "activeTab",
     "clipboardWrite",
-    "scripting"
+    "scripting",
+    "storage"
   ],
 
   "host_permissions": [
@@ -29,6 +30,7 @@
   ],
 
   "action": {
-    "default_title": "划词卡片"
+    "default_title": "划词卡片",
+    "default_popup": "popup.html"
   }
 }

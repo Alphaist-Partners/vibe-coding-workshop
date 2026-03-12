@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>划词卡片</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+  <!-- 顶部 Header -->
+  <header class="header">
+    <div class="header-title">
+      <span class="header-icon">✂️</span>
+      <span class="header-name">划词卡片</span>
+    </div>
+    <span id="count-badge" class="count-badge">共生成 0 张卡片</span>
+  </header>
+
+  <!-- 历史记录列表 -->
+  <main id="history-list" class="history-list hidden"></main>
+
+  <!-- 空状态 -->
+  <div id="empty-state" class="empty-state hidden">
+    <div class="empty-icon">✂️</div>
+    <p class="empty-title">还没有生成过卡片</p>
+    <p class="empty-hint">
+      在任意网页选中文字<br />
+      右键点击「✂️ 生成分享卡片」
+    </p>
+  </div>
+
+  <!-- Loading 状态（首次读取 storage）-->
+  <div id="loading-state" class="loading-state">
+    <span class="loading-dot"></span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
