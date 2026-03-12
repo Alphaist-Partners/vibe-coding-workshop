@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "划词卡片",
+  "version": "0.1.0",
+  "description": "选中网页文字，一键生成精美分享卡片",
+
+  "permissions": [
+    "contextMenus",
+    "activeTab"
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "action": {
+    "default_title": "划词卡片"
+  }
+}
