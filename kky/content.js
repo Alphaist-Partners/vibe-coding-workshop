@@ -12,15 +12,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("🔗 页面URL:", info.pageUrl);
     console.log("================================");
 
-    // 绘制卡片
+    // 1. 先显示 Loading
+    showLoading();
+
+    // 2. 绘制卡片（含二维码网络请求，异步）
     drawCard(info)
-      .then((canvas) => {
+      .then(async (canvas) => {
         console.log("✅ 卡片绘制完成，尺寸:", canvas.width, "x", canvas.height);
-        // 输出 data URL，可粘贴到浏览器地址栏预览图片
-        const dataUrl = canvas.toDataURL("image/png");
-        console.log("🖼️ 卡片 data URL（复制到地址栏可预览）:", dataUrl);
+
+        // 3. 自动复制到剪贴板
+        let copied = false;
+        try {
+          await copyToClipboard(canvas);
+          copied = true;
+          console.log("📋 已复制到剪贴板");
+        } catch (e) {
+          console.warn("⚠️ 剪贴板写入失败:", e);
+        }
+
+        // 4. 后台保存历史记录（不阻塞 UI）
+        saveToHistory(info, canvas).catch((e) =>
+          console.warn("⚠️ 历史记录保存失败:", e)
+        );
+
+        // 5. 显示预览浮层
+        showPreview(canvas, copied);
       })
       .catch((err) => {
+        removeUI();
         console.error("❌ 卡片绘制失败:", err);
       });
   }
@@ -282,4 +301,140 @@ function loadImage(src) {
     img.onerror = () => reject(new Error(`图片加载失败: ${src}`));
     img.src = src;
   });
+}
+
+// ─────────────────────────────────────────────
+// UI：Loading / 预览浮层 / 剪贴板
+// ─────────────────────────────────────────────
+
+/** 移除页面上所有划词卡片 UI 元素 */
+function removeUI() {
+  document.getElementById("hk-loading")?.remove();
+  document.getElementById("hk-overlay")?.remove();
+}
+
+/**
+ * 保存一条生成记录到 chrome.storage.local
+ * key: hk_history，最多保留 30 条
+ */
+function saveToHistory(info, canvas) {
+  const record = {
+    id: Date.now(),
+    text: info.selectedText.slice(0, 100),
+    pageTitle: info.pageTitle,
+    pageUrl: info.pageUrl,
+    imageDataUrl: canvas.toDataURL("image/png"),
+    createdAt: new Date().toISOString(),
+  };
+
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.get("hk_history", ({ hk_history = [] }) => {
+      if (chrome.runtime.lastError) return reject(chrome.runtime.lastError);
+      const updated = [record, ...hk_history].slice(0, 30); // 最多 30 条
+      chrome.storage.local.set({ hk_history: updated }, () => {
+        if (chrome.runtime.lastError) return reject(chrome.runtime.lastError);
+        console.log(`💾 已保存历史记录，当前共 ${updated.length} 条`);
+        resolve();
+      });
+    });
+  });
+}
+
+/** 在右下角显示 Loading 小提示 */
+function showLoading() {
+  removeUI();
+
+  const el = document.createElement("div");
+  el.id        = "hk-loading";
+  el.className = "hk-loading";
+  el.innerHTML = `<div class="hk-loading-spinner"></div> 正在生成卡片…`;
+  document.body.appendChild(el);
+}
+
+/**
+ * 将 Canvas 写入剪贴板（PNG Blob）
+ * @returns {Promise<void>}
+ */
+function copyToClipboard(canvas) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(async (blob) => {
+      if (!blob) return reject(new Error("toBlob 返回 null"));
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({ "image/png": blob }),
+        ]);
+        resolve();
+      } catch (e) {
+        reject(e);
+      }
+    }, "image/png");
+  });
+}
+
+/**
+ * 显示卡片预览浮层
+ * @param {HTMLCanvasElement} canvas
+ * @param {boolean} copied - 是否已成功写入剪贴板
+ */
+function showPreview(canvas, copied) {
+  removeUI(); // 移除 loading
+
+  /* ── 遮罩 ── */
+  const overlay = document.createElement("div");
+  overlay.id        = "hk-overlay";
+  overlay.className = "hk-overlay";
+
+  /* ── 卡片容器 ── */
+  const wrapper = document.createElement("div");
+  wrapper.className = "hk-card-wrapper";
+  // 点击卡片内部不关闭
+  wrapper.addEventListener("click", (e) => e.stopPropagation());
+
+  /* ── Toast ── */
+  const toast = document.createElement("div");
+  toast.className = "hk-toast";
+  toast.textContent = copied ? "✅ 已复制到剪贴板" : "⚠️ 复制失败，请手动保存";
+
+  /* ── 卡片图片（Canvas → data URL） ── */
+  const img = document.createElement("img");
+  img.className = "hk-card-img";
+  img.src       = canvas.toDataURL("image/png");
+  img.alt       = "分享卡片预览";
+
+  /* ── 按钮组 ── */
+  const buttons = document.createElement("div");
+  buttons.className = "hk-buttons";
+
+  // 再复制一次
+  const copyBtn = document.createElement("button");
+  copyBtn.className   = "hk-btn hk-btn-primary";
+  copyBtn.textContent = "📋 再复制一次";
+  copyBtn.addEventListener("click", async () => {
+    try {
+      await copyToClipboard(canvas);
+      toast.textContent = "✅ 已复制到剪贴板";
+    } catch {
+      toast.textContent = "⚠️ 复制失败，请重试";
+    }
+  });
+
+  // 关闭
+  const closeBtn = document.createElement("button");
+  closeBtn.className   = "hk-btn hk-btn-ghost";
+  closeBtn.textContent = "✕ 关闭";
+  closeBtn.addEventListener("click", removeUI);
+
+  buttons.appendChild(copyBtn);
+  buttons.appendChild(closeBtn);
+
+  /* ── 组装 ── */
+  wrapper.appendChild(toast);
+  wrapper.appendChild(img);
+  wrapper.appendChild(buttons);
+  overlay.appendChild(wrapper);
+
+  // 点击遮罩空白区域关闭
+  overlay.addEventListener("click", removeUI);
+
+  document.body.appendChild(overlay);
 }

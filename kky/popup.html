@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>划词卡片</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <!-- 顶部标题栏 -->
+    <header class="header">
+      <div class="header-left">
+        <span class="header-icon">✂️</span>
+        <span class="header-title">划词卡片</span>
+      </div>
+      <div class="header-count" id="js-count">加载中…</div>
+    </header>
+
+    <!-- 历史列表（由 popup.js 动态填充） -->
+    <main class="list" id="js-list"></main>
+
+    <!-- 空状态 -->
+    <div class="empty" id="js-empty">
+      <div class="empty-icon">✂️</div>
+      <p class="empty-title">还没有生成过卡片</p>
+      <p class="empty-desc">选中网页文字后右键选择<br />「✂️ 生成分享卡片」</p>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
