@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>设置 - 灵感收集器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="settings">
+  <div class="settings-container">
+    <header class="settings-header">
+      <h1>⚙️ 设置</h1>
+      <a href="dashboard.html" class="btn btn-outline">返回灵感库</a>
+    </header>
+
+    <div class="settings-content">
+      <div class="settings-section">
+        <h2>API 配置</h2>
+        <div class="form-group">
+          <label for="apiKeyInput">Claude API Key</label>
+          <input type="password" id="apiKeyInput" class="form-input" placeholder="sk-ant-xxxxxxxxxxxxxxxxxxxx">
+          <p class="form-help">
+            用于 AI 分类和简报生成。获取 API Key: <a href="https://console.anthropic.com/" target="_blank">https://console.anthropic.com/</a>
+          </p>
+        </div>
+        <div class="form-actions">
+          <button id="saveApiKeyBtn" class="btn btn-primary">保存 API Key</button>
+          <button id="clearApiKeyBtn" class="btn btn-secondary">清除</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2>数据管理</h2>
+        <div class="form-actions">
+          <button id="exportDataBtn" class="btn btn-secondary">导出所有数据</button>
+          <button id="importDataBtn" class="btn btn-secondary">导入数据</button>
+          <input type="file" id="importFileInput" accept=".json" style="display: none;">
+          <button id="clearAllBtn" class="btn btn-danger">清除所有数据</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2>使用说明</h2>
+        <div class="info-box">
+          <h3>如何使用：</h3>
+          <ol>
+            <li>配置 Claude API Key（上方输入框）</li>
+            <li>划选网页文字后右键选择「保存到灵感库」</li>
+            <li>或点击扩展图标，手动粘贴内容保存</li>
+            <li>打开管理界面查看、搜索、编辑所有收藏</li>
+            <li>点击「生成今日简报」获取 AI 智能整理</li>
+          </ol>
+        </div>
+      </div>
+
+      <div id="notification" class="notification"></div>
+    </div>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>灵感库 - 灵感收集器</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dashboard">
+  <div class="dashboard-container">
+    <header class="dashboard-header">
+      <h1>📚 灵感库</h1>
+      <div class="header-actions">
+        <button id="generateBriefBtn" class="btn btn-secondary">生成今日简报</button>
+        <button id="settingsBtn" class="btn btn-outline">设置</button>
+      </div>
+    </header>
+
+    <div class="dashboard-filters">
+      <input type="text" id="searchInput" placeholder="搜索内容..." class="search-input">
+      <select id="typeFilter" class="filter-select">
+        <option value="">所有类型</option>
+        <option value="article">文章摘录</option>
+        <option value="quote">金句</option>
+        <option value="video">视频链接</option>
+        <option value="prompt">Prompt</option>
+        <option value="tool">工具</option>
+        <option value="other">其他</option>
+      </select>
+      <select id="tagFilter" class="filter-select">
+        <option value="">所有标签</option>
+      </select>
+    </div>
+
+    <div id="itemsContainer" class="items-container"></div>
+
+    <div id="briefModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>📋 今日简报</h2>
+          <button id="closeBriefBtn" class="close-btn">&times;</button>
+        </div>
+        <div id="briefContent" class="modal-body"></div>
+        <div class="modal-footer">
+          <button id="exportMarkdownBtn" class="btn btn-primary">导出 Markdown</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>

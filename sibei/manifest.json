@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "灵感收集器 - Inspiration Collector",
+  "version": "1.0.0",
+  "description": "捕捉和整理网络浏览中有价值的内容，AI 自动分类生成简报",
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "tabs",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://api.anthropic.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "灵感收集器"
+  },
+  "options_ui": {
+    "page": "settings.html",
+    "open_in_tab": true
+  }
+}
