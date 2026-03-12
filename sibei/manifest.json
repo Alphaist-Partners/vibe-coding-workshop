@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "灵感收集器 - Inspiration Collector",
   "version": "1.0.0",
-  "description": "捕捉和整理网络浏览中有价值的内容，AI 自动分类生成简报",
+  "description": "捕捉和整理网络浏览中有价值的内容，智谱 AI 自动分类生成简报",
   "permissions": [
     "storage",
     "contextMenus",
@@ -10,7 +10,7 @@
     "activeTab"
   ],
   "host_permissions": [
-    "https://api.anthropic.com/*"
+    "https://open.bigmodel.cn/*"
   ],
   "background": {
     "service_worker": "background.js"

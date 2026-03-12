@@ -29,6 +29,77 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+// 模型配置
+const API_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+
+const modelMap = {
+  classify: 'glm-4.5',   // 轻量分类 → 省 token
+  summarize: 'glm-4.5',  // 摘要生成 → 省 token
+  digest: 'glm-4.7'      // 简报生成 → 最优效果
+};
+
+// 统一的 AI 调用函数
+async function callAI(task, content, apiKey) {
+  const model = modelMap[task];
+
+  let systemPrompt = '';
+  let userPrompt = '';
+
+  switch (task) {
+    case 'classify':
+      systemPrompt = '你是一个内容分类助手。请分析用户输入的内容，返回 JSON 格式，只包含 type（类型）、tags（标签数组）、summary（一句话摘要）三个字段。type 取值：article（文章摘录）、quote（金句）、video（视频链接）、prompt（Prompt）、tool（工具）、link（链接）、page（页面）、image（图片）、other（其他）。tags 是 2-3 个相关话题标签。summary 是不超过 50 字的一句话摘要。';
+      userPrompt = content.text.substring(0, 500);
+      break;
+
+    case 'summarize':
+      systemPrompt = '你是一个摘要助手。请为用户提供的内容生成一句话摘要，不超过 50 字。';
+      userPrompt = content.text.substring(0, 1000);
+      break;
+
+    case 'digest':
+      systemPrompt = '你是一个内容整理助手。请为用户的收藏内容生成今日简报，使用 Markdown 格式。结构包括：# 今日收藏概览、# 分类整理、# 核心洞察、# 推荐优先阅读。每个部分都要有实际内容，不要空泛而谈。';
+      userPrompt = content.map(item => `- [${item.type}] ${item.text.substring(0, 150)}`).join('\n');
+      break;
+  }
+
+  const response = await fetch(API_BASE_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: task === 'digest' ? 0.7 : 0.3,
+      max_tokens: task === 'digest' ? 2000 : 500
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error(`AI API error (${response.status}):`, errorData);
+    throw new Error(`API 请求失败 (${response.status}): ${errorData.error?.message || response.statusText}`);
+  }
+
+  const data = await response.json();
+
+  if (data.error) {
+    console.error('AI API returned error:', data.error);
+    throw new Error(data.error.message || 'API 返回错误');
+  }
+
+  if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+    console.error('Invalid AI API response:', data);
+    throw new Error('API 响应格式无效');
+  }
+
+  return data.choices[0].message.content;
+}
+
 // 处理右键菜单点击
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   let textToSave = '';
@@ -129,54 +200,8 @@ async function saveContent(content) {
 // AI 分类内容
 async function classifyContent(item, apiKey) {
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 200,
-        messages: [{
-          role: 'user',
-          content: `请分析以下内容，返回 JSON 格式：
-{
-  "type": "article|quote|video|prompt|tool|other",
-  "tags": ["tag1", "tag2"],
-  "summary": "一句话摘要"
-}
-
-内容：${item.text.substring(0, 200)}...`
-        }]
-      })
-    });
-
-    // 检查 HTTP 状态码
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("Classification HTTP error:", response.status, errorData);
-      return { type: 'other', tags: [], summary: '' };
-    }
-
-    const data = await response.json();
-
-    // 检查 API 是否返回错误
-    if (data.error) {
-      console.error("Classification API error:", data.error);
-      return { type: 'other', tags: [], summary: '' };
-    }
-
-    // 检查响应格式是否正确
-    if (!data.content || !Array.isArray(data.content) || data.content.length === 0) {
-      console.error("Invalid classification API response:", data);
-      return { type: 'other', tags: [], summary: '' };
-    }
-
-    const content = data.content[0].text;
-    return JSON.parse(content);
+    const response = await callAI('classify', item, apiKey);
+    return JSON.parse(response);
   } catch (error) {
     console.error("AI classification error:", error);
     return { type: 'other', tags: [], summary: '' };
@@ -241,60 +266,7 @@ async function generateDailyBrief(apiKey) {
       return { overview: '今日暂无收藏内容', content: '' };
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6-20250514',
-        max_tokens: 2000,
-        messages: [{
-          role: 'user',
-          content: `请为以下收藏内容生成今日简报，格式如下：
-
-# 今日收藏概览
-[简短描述今日收藏数量和类型分布]
-
-# 分类整理
-[按类型分组展示，每个类型下列出2-3条关键内容]
-
-# 核心洞察
-[提炼出3-5条最重要的洞察或启发]
-
-# 推荐优先阅读
-[列出3条最值得深入阅读的内容及理由]
-
-内容列表：
-${items.map(item => `- [${item.type}] ${item.text.substring(0, 100)}...`).join('\n')}`
-        }]
-      })
-    });
-
-    // 检查 HTTP 状态码
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Brief HTTP error:', response.status, errorData);
-      throw new Error(`API 请求失败 (${response.status}): ${errorData.error?.message || response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    // 检查 API 是否返回错误
-    if (data.error) {
-      throw new Error(data.error.message || 'API 返回错误');
-    }
-
-    // 检查响应格式是否正确
-    if (!data.content || !Array.isArray(data.content) || data.content.length === 0) {
-      console.error('Invalid API response:', data);
-      throw new Error('API 响应格式无效');
-    }
-
-    const brief = data.content[0].text;
+    const brief = await callAI('digest', items, apiKey);
 
     return {
       overview: `今日收藏 ${items.length} 条内容`,
