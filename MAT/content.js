@@ -9,18 +9,22 @@ chrome.runtime.onMessage.addListener((message) => {
 async function generateCard(text, url, title) {
   const W = 640;
   const pad = 28;
-  const qrSize = 88;
+  const qrSize = 60;          // 二维码缩小
+  const bottomH = 44;         // 底部信息栏高度（URL + 品牌）
   const lineH = 32;
   const fontSize = 20;
-  const textFont = `bold ${fontSize}px "PingFang SC", "Microsoft YaHei", sans-serif`;
+  // 思源黑体（Source Han Sans）字体栈，系统安装后自动生效，否则回退 PingFang SC
+  const textFont = `bold ${fontSize}px "Source Han Sans CN", "Source Han Sans SC", "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`;
+  const uiFont = `11px "Source Han Sans CN", "Source Han Sans SC", "Noto Sans SC", "PingFang SC", sans-serif`;
 
   // 第一步：测量文字，计算行数，动态决定画布高度
   const tmpCtx = document.createElement("canvas").getContext("2d");
   tmpCtx.font = textFont;
-  const textMaxW = W - pad * 2 - qrSize - 40; // 文字区域宽度（右侧留给二维码）
+  const textMaxW = W - pad * 2 - 48; // 文字占满卡片全宽
   const lines = wrapText(tmpCtx, text, textMaxW);
   const textBlockH = lines.length * lineH;
-  const H = Math.max(320, pad * 2 + 56 + textBlockH + 60); // 动态高度，最小 320px
+  // 动态高度：文字区 + 二维码区（qrSize） + 底部信息栏 + 间距
+  const H = Math.max(300, pad + 52 + textBlockH + 20 + qrSize + 12 + bottomH + pad);
 
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -40,7 +44,7 @@ async function generateCard(text, url, title) {
   // 3. 高亮条（卡片顶部装饰）
   drawRoundRect(ctx, pad + 24, pad + 20, W - pad * 2 - 48, 5, 3, "#FDE68A");
 
-  // 4. 正文 — 左对齐文字区，右侧留给二维码
+  // 4. 正文 — 全宽左对齐
   ctx.fillStyle = "#1e293b";
   ctx.font = textFont;
   ctx.textAlign = "left";
@@ -50,22 +54,32 @@ async function generateCard(text, url, title) {
     ctx.fillText(line, textX, textStartY + i * lineH);
   });
 
-  // 5. 来源 URL（底部左下角）
-  ctx.font = '11px "PingFang SC", monospace';
+  // 5. 分隔线
+  const dividerY = textStartY + textBlockH + 14;
+  ctx.strokeStyle = "#e2e8f0";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad + 20, dividerY);
+  ctx.lineTo(W - pad - 20, dividerY);
+  ctx.stroke();
+
+  // 6. 来源 URL（分隔线下方左侧）
+  const infoY = dividerY + 22;
+  ctx.font = uiFont;
   ctx.fillStyle = "#94a3b8";
   ctx.textAlign = "left";
   const shortUrl = url.length > 52 ? url.slice(0, 49) + "…" : url;
-  ctx.fillText(shortUrl, pad + 20, H - pad - 12);
+  ctx.fillText(shortUrl, pad + 20, infoY);
 
-  // 6. 品牌文字（右下角）
-  ctx.font = '11px "PingFang SC", sans-serif';
+  // 7. 品牌文字（分隔线下方右侧，二维码左边）
+  const qrX = W - pad - qrSize - 16;
+  const qrY = dividerY + 8;
+  ctx.font = uiFont;
   ctx.fillStyle = "#a5b4fc";
   ctx.textAlign = "right";
-  ctx.fillText("划词卡片", W - pad - 14, H - pad - 12);
+  ctx.fillText("划词卡片", qrX - 10, infoY);
 
-  // 7. 二维码（右侧，垂直居中）
-  const qrX = W - pad - qrSize - 8;
-  const qrY = pad + (H - pad * 2 - qrSize) / 2;
+  // 8. 二维码（右下角）
   await drawQRCode(ctx, url, qrX, qrY, qrSize);
 
   // 8. 复制到剪贴板 + 保存历史
@@ -169,7 +183,7 @@ function showToast(msg, isError = false) {
     position: "fixed", top: "24px", right: "24px", zIndex: "2147483647",
     padding: "12px 20px", borderRadius: "10px",
     background: isError ? "#ef4444" : "#1e293b",
-    color: "#fff", fontSize: "14px", fontFamily: "PingFang SC, sans-serif",
+    color: "#fff", fontSize: "14px", fontFamily: '"Source Han Sans CN", "Noto Sans SC", "PingFang SC", sans-serif',
     boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
     transition: "opacity 0.4s", opacity: "1"
   });
