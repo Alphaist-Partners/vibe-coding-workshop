@@ -7,50 +7,66 @@ chrome.runtime.onMessage.addListener((message) => {
 
 // ── 主函数：生成卡片 ──────────────────────────────────────────
 async function generateCard(text, url, title) {
+  const W = 640;
+  const pad = 28;
+  const qrSize = 88;
+  const lineH = 32;
+  const fontSize = 20;
+  const textFont = `bold ${fontSize}px "PingFang SC", "Microsoft YaHei", sans-serif`;
+
+  // 第一步：测量文字，计算行数，动态决定画布高度
+  const tmpCtx = document.createElement("canvas").getContext("2d");
+  tmpCtx.font = textFont;
+  const textMaxW = W - pad * 2 - qrSize - 40; // 文字区域宽度（右侧留给二维码）
+  const lines = wrapText(tmpCtx, text, textMaxW);
+  const textBlockH = lines.length * lineH;
+  const H = Math.max(320, pad * 2 + 56 + textBlockH + 60); // 动态高度，最小 320px
+
   const canvas = document.createElement("canvas");
-  const W = 640, H = 380;
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d");
 
-  // 1. 深色背景
-  ctx.fillStyle = "#1e293b";
+  // 1. 渐变背景（左上→右下）
+  const grad = ctx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, "#667eea");
+  grad.addColorStop(1, "#764ba2");
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
   // 2. 白色卡片（圆角）
-  const pad = 28;
   drawRoundRect(ctx, pad, pad, W - pad * 2, H - pad * 2, 16, "#ffffff");
 
-  // 3. 高亮条
-  drawRoundRect(ctx, pad + 24, pad + 22, W - pad * 2 - 48, 6, 3, "#FDE68A");
+  // 3. 高亮条（卡片顶部装饰）
+  drawRoundRect(ctx, pad + 24, pad + 20, W - pad * 2 - 48, 5, 3, "#FDE68A");
 
-  // 4. 正文（自动换行，最多5行）
+  // 4. 正文 — 左对齐文字区，右侧留给二维码
   ctx.fillStyle = "#1e293b";
-  ctx.font = 'bold 20px "PingFang SC", "Microsoft YaHei", sans-serif';
-  ctx.textAlign = "center";
-  const maxW = W - pad * 2 - 120; // 留出二维码宽度
-  const lines = wrapText(ctx, text, maxW, 5);
-  const lineH = 30;
-  const textY = H / 2 - (lines.length * lineH) / 2 + 10;
+  ctx.font = textFont;
+  ctx.textAlign = "left";
+  const textX = pad + 24;
+  const textStartY = pad + 52;
   lines.forEach((line, i) => {
-    ctx.fillText(line, (W - 90) / 2 + pad, textY + i * lineH);
+    ctx.fillText(line, textX, textStartY + i * lineH);
   });
 
   // 5. 来源 URL（底部左下角）
   ctx.font = '11px "PingFang SC", monospace';
   ctx.fillStyle = "#94a3b8";
   ctx.textAlign = "left";
-  const shortUrl = url.length > 55 ? url.slice(0, 52) + "…" : url;
-  ctx.fillText(shortUrl, pad + 20, H - pad - 14);
+  const shortUrl = url.length > 52 ? url.slice(0, 49) + "…" : url;
+  ctx.fillText(shortUrl, pad + 20, H - pad - 12);
 
   // 6. 品牌文字（右下角）
   ctx.font = '11px "PingFang SC", sans-serif';
-  ctx.fillStyle = "#cbd5e1";
+  ctx.fillStyle = "#a5b4fc";
   ctx.textAlign = "right";
-  ctx.fillText("划词卡片", W - pad - 16, H - pad - 14);
+  ctx.fillText("划词卡片", W - pad - 14, H - pad - 12);
 
-  // 7. 二维码（右侧中间）
-  await drawQRCode(ctx, url, W - pad - 100, pad + 36, 84);
+  // 7. 二维码（右侧，垂直居中）
+  const qrX = W - pad - qrSize - 8;
+  const qrY = pad + (H - pad * 2 - qrSize) / 2;
+  await drawQRCode(ctx, url, qrX, qrY, qrSize);
 
   // 8. 复制到剪贴板 + 保存历史
   canvas.toBlob(async (blob) => {
@@ -84,24 +100,35 @@ function drawRoundRect(ctx, x, y, w, h, r, color) {
   ctx.fill();
 }
 
-function wrapText(ctx, text, maxWidth, maxLines) {
+function wrapText(ctx, text, maxWidth) {
+  // 将文本拆分为 token：中文逐字、英文/数字按词（以空白分隔）
+  const tokens = [];
+  const re = /[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef\u2014\u2018\u2019\u201c\u201d]|[^\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]+/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const t = m[0];
+    if (t.length === 1) {
+      tokens.push(t); // 单个中文字符
+    } else {
+      // 英文段落：按空格拆成词，保留空格作为粘连符
+      t.split(/(\s+)/).filter(Boolean).forEach(w => tokens.push(w));
+    }
+  }
+
   const lines = [];
-  // 支持中英文混合：按空格分英文词，中文按字符拆
-  const segments = text.split(/(\s+)/);
   let current = "";
-  for (const seg of segments) {
-    const test = current + seg;
-    if (ctx.measureText(test).width > maxWidth && current) {
-      lines.push(current.trim());
-      current = seg;
-      if (lines.length >= maxLines) break;
+  for (const token of tokens) {
+    // 新行开头跳过空白 token
+    if (!current && /^\s+$/.test(token)) continue;
+    const test = current + token;
+    if (ctx.measureText(test).width > maxWidth && current.trim()) {
+      lines.push(current.trimEnd());
+      current = /^\s+$/.test(token) ? "" : token;
     } else {
       current = test;
     }
   }
-  if (current.trim() && lines.length < maxLines) {
-    lines.push(current.trim());
-  }
+  if (current.trim()) lines.push(current.trimEnd());
   return lines;
 }
 
