@@ -1,2 +1,179 @@
-/* content.css - 划词卡片插件样式（预留，当前阶段暂无 UI） */
-/* 后续卡片弹窗的样式将在此处添加 */
+/* ================================================================
+   划词卡片 — content.css
+   所有选择器以 #huaci- / .huaci- 前缀隔离，避免与页面样式冲突
+   ================================================================ */
+
+/* ---- Loading Toast ------------------------------------------------ */
+#huaci-loading {
+  position: fixed !important;
+  bottom: 36px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  background: rgba(18, 18, 18, 0.92) !important;
+  color: #ffffff !important;
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  padding: 12px 24px !important;
+  border-radius: 100px !important;
+  z-index: 2147483647 !important;
+  white-space: nowrap !important;
+  pointer-events: none !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+  animation: huaci-slide-up 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+}
+
+/* ---- Full-page Overlay -------------------------------------------- */
+#huaci-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  background: rgba(8, 8, 12, 0.72) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  z-index: 2147483646 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 24px !important;
+  box-sizing: border-box !important;
+  cursor: pointer !important;
+  animation: huaci-fade-in 0.22s ease both !important;
+}
+
+/* ---- Card Container (stops click-through to overlay) -------------- */
+#huaci-container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 18px !important;
+  cursor: default !important;
+  max-height: 92vh !important;
+  max-width: 100% !important;
+}
+
+/* ---- Status Message ----------------------------------------------- */
+#huaci-msg {
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  color: #ffffff !important;
+  letter-spacing: 0.02em !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  animation: huaci-slide-down 0.3s cubic-bezier(0.34, 1.3, 0.64, 1) both !important;
+}
+
+/* ---- Card Preview Image ------------------------------------------- */
+#huaci-img {
+  display: block !important;
+  max-width: min(680px, 88vw) !important;
+  max-height: 58vh !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  border-radius: 14px !important;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.25),
+    0 12px 40px rgba(0, 0, 0, 0.45),
+    0 32px 80px rgba(0, 0, 0, 0.3) !important;
+  animation: huaci-card-in 0.35s cubic-bezier(0.34, 1.2, 0.64, 1) both !important;
+  animation-delay: 0.05s !important;
+}
+
+/* ---- Button Row --------------------------------------------------- */
+#huaci-btns {
+  display: flex !important;
+  gap: 10px !important;
+  align-items: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  animation: huaci-fade-in 0.3s ease both !important;
+  animation-delay: 0.12s !important;
+}
+
+/* ---- Button Base -------------------------------------------------- */
+.huaci-btn {
+  all: initial !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  padding: 11px 22px !important;
+  border-radius: 100px !important;
+  cursor: pointer !important;
+  border: none !important;
+  outline: none !important;
+  white-space: nowrap !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease,
+    background 0.15s ease !important;
+}
+
+.huaci-btn:hover {
+  opacity: 0.88 !important;
+  transform: translateY(-1px) !important;
+}
+
+.huaci-btn:active {
+  transform: translateY(0) scale(0.97) !important;
+}
+
+.huaci-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* Primary — 白底深字 */
+.huaci-btn-primary {
+  background: #ffffff !important;
+  color: #111111 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Ghost — 透明白边 */
+.huaci-btn-ghost {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.72) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.28) !important;
+}
+
+.huaci-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.55) !important;
+}
+
+/* ---- Keyframe Animations ------------------------------------------ */
+@keyframes huaci-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes huaci-slide-up {
+  from { opacity: 0; transform: translate(-50%, 14px); }
+  to   { opacity: 1; transform: translate(-50%, 0);    }
+}
+
+@keyframes huaci-slide-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0);     }
+}
+
+@keyframes huaci-card-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
