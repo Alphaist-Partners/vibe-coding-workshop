@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>划词卡片 · Chrome 插件</title>
+  <style>
+    /* ── Reset & Base ──────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple-deep:   #0d0015;
+      --purple-dark:   #1e0040;
+      --purple-mid:    #4c1d95;
+      --purple-main:   #7c3aed;
+      --purple-light:  #a78bfa;
+      --purple-pale:   #ede9fe;
+      --accent-gold:   #fde68a;
+      --text-primary:  #f0e6ff;
+      --text-secondary: rgba(216,180,254,0.65);
+      --text-muted:    rgba(216,180,254,0.35);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+      background: var(--purple-deep);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── Noise texture overlay ─────────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Nav ───────────────────────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10%;
+      height: 64px;
+      background: rgba(13, 0, 21, 0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(167,139,250,0.1);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-decoration: none;
+    }
+
+    .nav-logo-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #3b0764, #7c3aed);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text-primary); }
+
+    .btn-nav {
+      padding: 8px 20px;
+      background: var(--purple-main);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .btn-nav:hover { background: #6d28d9; transform: translateY(-1px); }
+
+    /* ── Hero ──────────────────────────────────────────────────────────────── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 100px 10% 80px;
+      overflow: hidden;
+    }
+
+    /* Background radial glows */
+    .hero::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 30%, rgba(124,58,237,0.2) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 35% at 20% 60%, rgba(192,132,252,0.1) 0%, transparent 60%),
+        radial-gradient(ellipse 35% 30% at 80% 70%, rgba(109,40,217,0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border: 1px solid rgba(167,139,250,0.3);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--purple-light);
+      background: rgba(124,58,237,0.1);
+      margin-bottom: 28px;
+      letter-spacing: 0.5px;
+    }
+
+    .hero-title {
+      font-size: clamp(42px, 7vw, 80px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -1px;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #fff 30%, #c084fc 70%, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-sub {
+      font-size: clamp(16px, 2vw, 20px);
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin: 0 auto 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+      margin-bottom: 72px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #4c1d95, #7c3aed);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 8px 32px rgba(124,58,237,0.35);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(124,58,237,0.45); }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      background: rgba(255,255,255,0.06);
+      color: var(--text-primary);
+      border: 1px solid rgba(167,139,250,0.25);
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
+
+    /* ── Card preview row ──────────────────────────────────────────────────── */
+    .card-preview-row {
+      display: flex;
+      gap: 16px;
+      position: relative;
+      z-index: 1;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .preview-card {
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      transition: transform 0.3s, box-shadow 0.3s;
+      flex-shrink: 0;
+    }
+    .preview-card:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 28px 80px rgba(124,58,237,0.4); }
+
+    /* Simulated cards using pure CSS */
+    .mock-card {
+      width: 300px;
+      height: 168px;
+      border-radius: 14px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px 20px 0;
+    }
+
+    .mock-card::before {
+      content: '\u201C';
+      position: absolute;
+      top: -10px;
+      left: -8px;
+      font-size: 100px;
+      font-family: Georgia, serif;
+      font-weight: bold;
+      opacity: 0.06;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .mock-accent-bar {
+      position: absolute;
+      left: 14px;
+      top: 16px;
+      width: 3px;
+      height: 96px;
+      border-radius: 2px;
+    }
+
+    .mock-text {
+      font-size: 13px;
+      line-height: 1.6;
+      padding-left: 20px;
+      font-weight: 400;
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    .mock-footer {
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      margin: 0 -20px;
+      padding: 0 16px;
+    }
+
+    .mock-domain { font-size: 10px; opacity: 0.55; }
+    .mock-qr {
+      width: 26px; height: 26px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.85);
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 1.5px;
+      padding: 3px;
+    }
+    .mock-qr-dot { background: #333; border-radius: 0.5px; }
+
+    /* Theme 0: 深邃 */
+    .card-theme-0 { background: linear-gradient(135deg, #0d0015, #200040, #2e0060); }
+    .card-theme-0 .mock-accent-bar { background: #c084fc; }
+    .card-theme-0 .mock-text { color: #f0e6ff; }
+    .card-theme-0 .mock-footer { border-top-color: rgba(255,255,255,0.07); }
+
+    /* Theme 1: 紫韵 */
+    .card-theme-1 { background: linear-gradient(135deg, #1e0040, #4c1d95, #7c3aed); }
+    .card-theme-1 .mock-accent-bar { background: #fde68a; }
+    .card-theme-1 .mock-text { color: #fff; }
+
+    /* Theme 2: 薰衣草 */
+    .card-theme-2 { background: linear-gradient(135deg, #3b0764, #6d28d9, #a78bfa); }
+    .card-theme-2 .mock-accent-bar { background: #fff; }
+    .card-theme-2 .mock-text { color: #fff; }
+
+    /* Theme 3: 雅白 */
+    .card-theme-3 { background: linear-gradient(135deg, #fff, #f5f0ff, #ede9fe); }
+    .card-theme-3::before { color: #7c3aed !important; }
+    .card-theme-3 .mock-accent-bar { background: #7c3aed; }
+    .card-theme-3 .mock-text { color: #1e0040; }
+    .card-theme-3 .mock-footer { border-top-color: rgba(109,40,217,0.1); }
+    .card-theme-3 .mock-domain { color: rgba(109,40,217,0.6); }
+
+    /* ── Section base ──────────────────────────────────────────────────────── */
+    section {
+      position: relative;
+      padding: 100px 10%;
+      z-index: 1;
+    }
+
+    .section-label {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--purple-light);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+
+    .section-desc {
+      font-size: 16px;
+      color: var(--text-secondary);
+      max-width: 520px;
+      line-height: 1.8;
+    }
+
+    /* ── Features ──────────────────────────────────────────────────────────── */
+    #features {
+      background: linear-gradient(180deg, transparent, rgba(76,29,149,0.08) 50%, transparent);
+    }
+
+    .features-header { text-align: center; margin-bottom: 64px; }
+    .features-header .section-desc { margin: 0 auto; }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(167,139,250,0.12);
+      border-radius: 20px;
+      padding: 32px 28px;
+      transition: background 0.25s, border-color 0.25s, transform 0.25s;
+    }
+    .feature-card:hover {
+      background: rgba(124,58,237,0.08);
+      border-color: rgba(167,139,250,0.28);
+      transform: translateY(-4px);
+    }
+
+    .feature-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .feature-icon-0 { background: rgba(192,132,252,0.15); }
+    .feature-icon-1 { background: rgba(253,230,138,0.12); }
+    .feature-icon-2 { background: rgba(67,233,123,0.1); }
+    .feature-icon-3 { background: rgba(233,69,96,0.1); }
+
+    .feature-title {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--text-primary);
+    }
+
+    .feature-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.75;
+    }
+
+    /* ── Themes showcase ───────────────────────────────────────────────────── */
+    #themes { text-align: center; }
+
+    .themes-header { margin-bottom: 56px; }
+    .themes-header .section-desc { margin: 0 auto; }
+
+    .themes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .theme-showcase {
+      border-radius: 20px;
+      overflow: hidden;
+      transition: transform 0.3s, box-shadow 0.3s;
+      cursor: default;
+    }
+    .theme-showcase:hover { transform: translateY(-6px); box-shadow: 0 24px 60px rgba(0,0,0,0.4); }
+
+    .theme-showcase .mock-card {
+      width: 100%;
+      height: 188px;
+      border-radius: 0;
+    }
+
+    .theme-name-tag {
+      text-align: left;
+      padding: 14px 18px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .tag-0 { background: rgba(30, 0, 64, 0.9);  color: #c084fc; }
+    .tag-1 { background: rgba(30, 0, 64, 0.95); color: #fde68a; }
+    .tag-2 { background: rgba(59, 7, 100, 0.9);  color: #e9d5ff; }
+    .tag-3 { background: rgba(245,240,255,0.95); color: #4c1d95; }
+
+    /* ── How to use ────────────────────────────────────────────────────────── */
+    #howto {
+      background: linear-gradient(180deg, transparent, rgba(76,29,149,0.06) 50%, transparent);
+    }
+
+    .howto-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .steps { display: flex; flex-direction: column; gap: 28px; }
+
+    .step {
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #4c1d95, #7c3aed);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+      box-shadow: 0 4px 16px rgba(124,58,237,0.35);
+    }
+
+    .step-body h4 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .step-body p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .step-body code {
+      background: rgba(124,58,237,0.18);
+      color: var(--purple-light);
+      padding: 1px 7px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: "SF Mono", "Fira Code", monospace;
+    }
+
+    /* Animated flow diagram */
+    .flow-diagram {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(167,139,250,0.12);
+      border-radius: 20px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .flow-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(167,139,250,0.08);
+      transition: background 0.2s;
+    }
+    .flow-row:hover { background: rgba(124,58,237,0.1); }
+
+    .flow-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .flow-arrow {
+      text-align: center;
+      color: rgba(167,139,250,0.4);
+      font-size: 12px;
+      padding: 0 16px;
+    }
+
+    /* ── Install CTA ───────────────────────────────────────────────────────── */
+    #install {
+      text-align: center;
+      padding: 120px 10%;
+    }
+
+    .cta-box {
+      background: linear-gradient(135deg, rgba(76,29,149,0.3), rgba(124,58,237,0.2));
+      border: 1px solid rgba(167,139,250,0.2);
+      border-radius: 32px;
+      padding: 72px 48px;
+      max-width: 680px;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-box::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(167,139,250,0.15), transparent);
+      pointer-events: none;
+    }
+
+    .cta-title {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .cta-desc {
+      font-size: 16px;
+      color: var(--text-secondary);
+      margin-bottom: 36px;
+      line-height: 1.7;
+    }
+
+    .install-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+      max-width: 440px;
+      margin: 0 auto 36px;
+    }
+
+    .install-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .install-step::before {
+      content: attr(data-n);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(124,58,237,0.3);
+      border: 1px solid rgba(167,139,250,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--purple-light);
+      flex-shrink: 0;
+    }
+
+    /* ── Footer ────────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid rgba(167,139,250,0.1);
+      padding: 40px 10%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .footer-right {
+      display: flex;
+      gap: 24px;
+    }
+
+    .footer-right a {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-right a:hover { color: var(--purple-light); }
+
+    /* ── Scroll animations ─────────────────────────────────────────────────── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-up.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Responsive ────────────────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      nav { padding: 0 5%; }
+      .nav-links { display: none; }
+      section { padding: 80px 5%; }
+      .hero { padding: 100px 5% 60px; }
+      .howto-inner { grid-template-columns: 1fr; gap: 40px; }
+      footer { flex-direction: column; text-align: center; }
+      .footer-right { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-icon">✂️</div>
+      划词卡片
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">功能</a></li>
+      <li><a href="#themes">主题</a></li>
+      <li><a href="#howto">使用方法</a></li>
+    </ul>
+    <a href="#install" class="btn-nav">立即安装</a>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-badge">✨ Chrome 扩展 · 免费开源</div>
+    <h1 class="hero-title">划词生成<br>精美分享卡片</h1>
+    <p class="hero-sub">选中网页上任意文字，一键生成带渐变背景、来源二维码的精美图片卡片，自动复制到剪贴板。</p>
+    <div class="hero-actions">
+      <a href="#install" class="btn-primary">
+        <span>⬇️</span> 安装插件
+      </a>
+      <a href="https://github.com/Alphaist-Partners/vibe-coding-workshop" target="_blank" class="btn-secondary">
+        <span>⭐</span> GitHub
+      </a>
+    </div>
+
+    <!-- Card previews -->
+    <div class="card-preview-row">
+      <div class="preview-card">
+        <div class="mock-card card-theme-0">
+          <div class="mock-accent-bar"></div>
+          <div class="mock-text">"知识不是力量，应用知识才是力量。"</div>
+          <div class="mock-footer">
+            <span class="mock-domain">example.com</span>
+            <div class="mock-qr">
+              <div class="mock-qr-dot"></div><div class="mock-qr-dot" style="opacity:0"></div><div class="mock-qr-dot"></div>
+              <div class="mock-qr-dot" style="opacity:0"></div><div class="mock-qr-dot"></div><div class="mock-qr-dot" style="opacity:0"></div>
+              <div class="mock-qr-dot"></div><div class="mock-qr-dot" style="opacity:0"></div><div class="mock-qr-dot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="preview-card" style="transform: translateY(-12px)">
+        <div class="mock-card card-theme-1">
+          <div class="mock-accent-bar"></div>
+          <div class="mock-text">设计不是外观，而是它如何运作。</div>
+          <div class="mock-footer">
+            <span class="mock-domain">wikipedia.org</span>
+            <div class="mock-qr">
+              <div class="mock-qr-dot"></div><div class="mock-qr-dot" style="opacity:0"></div><div class="mock-qr-dot"></div>
+              <div class="mock-qr-dot" style="opacity:0"></div><div class="mock-qr-dot"></div><div class="mock-qr-dot" style="opacity:0"></div>
+              <div class="mock-qr-dot"></div><div class="mock-qr-dot" style="opacity:0"></div><div class="mock-qr-dot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="preview-card">
+        <div class="mock-card card-theme-3">
+          <div class="mock-accent-bar"></div>
+          <div class="mock-text">The best way to predict the future is to invent it.</div>
+          <div class="mock-footer">
+            <span class="mock-domain">medium.com</span>
+            <div class="mock-qr">
+              <div class="mock-qr-dot" style="background:#5b21b6"></div><div class="mock-qr-dot" style="opacity:0"></div><div class="mock-qr-dot" style="background:#5b21b6"></div>
+              <div class="mock-qr-dot" style="opacity:0"></div><div class="mock-qr-dot" style="background:#5b21b6"></div><div class="mock-qr-dot" style="opacity:0"></div>
+              <div class="mock-qr-dot" style="background:#5b21b6"></div><div class="mock-qr-dot" style="opacity:0"></div><div class="mock-qr-dot" style="background:#5b21b6"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features">
+    <div class="features-header fade-up">
+      <div class="section-label">功能特性</div>
+      <h2 class="section-title">四步生成，一键分享</h2>
+      <p class="section-desc">从选中文字到图片卡片进剪贴板，全程不超过 2 秒。</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card fade-up">
+        <div class="feature-icon feature-icon-0">✂️</div>
+        <h3 class="feature-title">文字捕获</h3>
+        <p class="feature-desc">在任意网页选中文字后，旁边自动浮现操作按钮；也可以右键菜单触发，两种方式都支持。</p>
+      </div>
+      <div class="feature-card fade-up" style="transition-delay:0.1s">
+        <div class="feature-icon feature-icon-1">🎨</div>
+        <h3 class="feature-title">Canvas 渲染</h3>
+        <p class="feature-desc">Canvas 绘制渐变背景、装饰引号、自适应字号文本、来源域名。四套紫色主题随时切换。</p>
+      </div>
+      <div class="feature-card fade-up" style="transition-delay:0.2s">
+        <div class="feature-icon feature-icon-2">📋</div>
+        <h3 class="feature-title">自动复制</h3>
+        <p class="feature-desc">生成后立即写入系统剪贴板（PNG 格式），直接粘贴到微信、微博、Notion 等任意场景。</p>
+      </div>
+      <div class="feature-card fade-up" style="transition-delay:0.3s">
+        <div class="feature-icon feature-icon-3">💾</div>
+        <h3 class="feature-title">历史记录</h3>
+        <p class="feature-desc">所有生成过的卡片自动保存（最多 50 张），点击插件图标随时查看、复制、删除。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Themes -->
+  <section id="themes">
+    <div class="themes-header fade-up">
+      <div class="section-label">主题风格</div>
+      <h2 class="section-title">四套紫色主题</h2>
+      <p class="section-desc">从极深宇宙黑到纯净雅白，总有一款契合你的内容气质。</p>
+    </div>
+    <div class="themes-grid">
+      <div class="theme-showcase fade-up">
+        <div class="mock-card card-theme-0" style="height:160px;width:100%">
+          <div class="mock-accent-bar"></div>
+          <div class="mock-text" style="font-size:12px">"极深紫黑，神秘深邃"</div>
+          <div class="mock-footer"><span class="mock-domain">深邃</span></div>
+        </div>
+        <div class="theme-name-tag tag-0">深邃 — 宇宙级深黑 + 浅紫高亮</div>
+      </div>
+      <div class="theme-showcase fade-up" style="transition-delay:0.1s">
+        <div class="mock-card card-theme-1" style="height:160px;width:100%">
+          <div class="mock-accent-bar"></div>
+          <div class="mock-text" style="font-size:12px">深紫到亮紫，金色点缀</div>
+          <div class="mock-footer"><span class="mock-domain" style="color:rgba(253,230,138,0.6)">紫韵</span></div>
+        </div>
+        <div class="theme-name-tag tag-1">紫韵 — 深邃紫调 + 金色强调</div>
+      </div>
+      <div class="theme-showcase fade-up" style="transition-delay:0.2s">
+        <div class="mock-card card-theme-2" style="height:160px;width:100%">
+          <div class="mock-accent-bar"></div>
+          <div class="mock-text" style="font-size:12px">浅淡薰衣草色调渐变</div>
+          <div class="mock-footer"><span class="mock-domain">薰衣草</span></div>
+        </div>
+        <div class="theme-name-tag tag-2">薰衣草 — 明亮渐变 + 白色文字</div>
+      </div>
+      <div class="theme-showcase fade-up" style="transition-delay:0.3s">
+        <div class="mock-card card-theme-3" style="height:160px;width:100%">
+          <div class="mock-accent-bar"></div>
+          <div class="mock-text" style="font-size:12px">白底深紫字，清雅简洁</div>
+          <div class="mock-footer"><span class="mock-domain" style="color:rgba(109,40,217,0.55)">雅白</span></div>
+        </div>
+        <div class="theme-name-tag tag-3">雅白 — 白卡 + 深紫文字</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How to use -->
+  <section id="howto">
+    <div class="howto-inner">
+      <div class="fade-up">
+        <div class="section-label">使用方法</div>
+        <h2 class="section-title" style="margin-bottom:36px">三步完成<br>从选词到卡片</h2>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h4>选中文字</h4>
+              <p>在任意网页用鼠标选中想要保存的文字段落，旁边会出现 <code>✂️</code> 悬浮按钮</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h4>点击生成</h4>
+              <p>点击悬浮按钮，或右键选择「生成划词卡片 ✂️」，卡片自动渲染，二维码链回原文</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h4>直接粘贴</h4>
+              <p>图片已写入剪贴板，<code>Ctrl+V</code> 粘贴到任意地方；预览弹窗里还可切换主题、下载原图</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-diagram fade-up" style="transition-delay:0.2s">
+        <div class="flow-row">
+          <div class="flow-dot" style="background:#c084fc"></div>
+          <span>选中文字 → 悬浮按钮 / 右键菜单</span>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-row">
+          <div class="flow-dot" style="background:#fde68a"></div>
+          <span>Canvas 绘制卡片（渐变 + 文字 + 来源）</span>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-row">
+          <div class="flow-dot" style="background:#43e97b"></div>
+          <span>后台请求 QR 码（二维码链接原文）</span>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-row">
+          <div class="flow-dot" style="background:#e94560"></div>
+          <span>PNG 写入剪贴板 + 保存历史记录</span>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-row">
+          <div class="flow-dot" style="background:#a78bfa"></div>
+          <span>预览弹窗 — 切换主题 / 下载 / 关闭</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Install CTA -->
+  <section id="install">
+    <div class="cta-box fade-up">
+      <div style="font-size:48px;margin-bottom:20px">✂️</div>
+      <h2 class="cta-title">立即安装，开始使用</h2>
+      <p class="cta-desc">开发者模式加载，30 秒完成安装，无需账号，完全离线可用。</p>
+      <div class="install-steps">
+        <div class="install-step" data-n="1">打开 Chrome，进入 <code style="background:rgba(124,58,237,0.2);color:#a78bfa;padding:1px 6px;border-radius:4px;font-size:12px">chrome://extensions/</code></div>
+        <div class="install-step" data-n="2">开启右上角「开发者模式」</div>
+        <div class="install-step" data-n="3">点击「加载已解压的扩展程序」</div>
+        <div class="install-step" data-n="4">选择 <code style="background:rgba(124,58,237,0.2);color:#a78bfa;padding:1px 6px;border-radius:4px;font-size:12px">chrome插件test/</code> 文件夹</div>
+      </div>
+      <a href="https://github.com/Alphaist-Partners/vibe-coding-workshop" target="_blank" class="btn-primary">
+        ⬇️ 下载源码 (GitHub)
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-left">
+      <div class="nav-logo-icon">✂️</div>
+      <span>划词卡片 · MIT License</span>
+    </div>
+    <div class="footer-right">
+      <a href="https://github.com/Alphaist-Partners/vibe-coding-workshop" target="_blank">GitHub</a>
+      <a href="#features">功能</a>
+      <a href="#themes">主题</a>
+    </div>
+  </footer>
+
+  <script>
+    // Scroll fade-in animation
+    const observer = new IntersectionObserver(
+      entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }),
+      { threshold: 0.15 }
+    );
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>
