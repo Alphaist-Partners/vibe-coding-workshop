@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>划词卡片</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <span class="logo">✂️</span>
+      <h1 class="title">划词卡片</h1>
+    </div>
+    <button id="btn-clear" class="btn-ghost" title="清空历史">🗑️</button>
+  </header>
+
+  <!-- Theme Picker -->
+  <section class="theme-section">
+    <span class="section-label">主题</span>
+    <div id="theme-picker" class="theme-picker"></div>
+  </section>
+
+  <!-- History -->
+  <div id="count-bar" class="count-bar">历史记录 <span id="count">0</span> 张</div>
+
+  <main id="history-list" class="history-list"></main>
+
+  <div id="empty-state" class="empty-state" hidden>
+    <div class="empty-icon">📄</div>
+    <p>还没有卡片</p>
+    <p class="empty-sub">去网页上选中文字，点击悬浮按钮或右键菜单生成</p>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

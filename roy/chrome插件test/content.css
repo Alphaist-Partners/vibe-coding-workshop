@@ -1,0 +1,184 @@
+/* ── Floating Action Button ─────────────────────────────────────────────── */
+
+#__sc-fab {
+  all: unset;
+  position: absolute;
+  z-index: 2147483646;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #1a1a2e;
+  color: #f7c948;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transform: scale(0.85) translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+  pointer-events: none;
+}
+
+#__sc-fab.__sc-visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+
+#__sc-fab:hover {
+  background: #302b63;
+}
+
+#__sc-fab svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* ── Preview Overlay ────────────────────────────────────────────────────── */
+
+#__sc-overlay {
+  all: initial;
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+#__sc-overlay.__sc-visible {
+  opacity: 1;
+}
+
+.__sc-modal {
+  all: initial;
+  display: flex;
+  flex-direction: column;
+  background: #1a1a2e;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  max-width: min(92vw, 800px);
+  max-height: 90vh;
+  transform: scale(0.92) translateY(20px);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+#__sc-overlay.__sc-visible .__sc-modal {
+  transform: scale(1) translateY(0);
+}
+
+/* ── Modal Header ───────────────────────────────────────────────────────── */
+
+.__sc-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.__sc-status {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.__sc-status.__sc-ok  { color: #43e97b; }
+.__sc-status.__sc-warn { color: #f9ca24; }
+
+.__sc-themes {
+  display: flex;
+  gap: 8px;
+}
+
+.__sc-theme-dot {
+  all: unset;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.__sc-theme-dot.__sc-active,
+.__sc-theme-dot:hover {
+  border-color: rgba(255, 255, 255, 0.7);
+  transform: scale(1.15);
+}
+
+/* ── Card Image ─────────────────────────────────────────────────────────── */
+
+.__sc-img-wrap {
+  padding: 16px 20px 8px;
+  overflow: auto;
+}
+
+.__sc-img {
+  display: block;
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Modal Footer ───────────────────────────────────────────────────────── */
+
+.__sc-modal-footer {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px 16px;
+  justify-content: flex-end;
+}
+
+.__sc-btn {
+  all: unset;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+.__sc-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+.__sc-btn:active { transform: translateY(0); }
+
+.__sc-btn-dl    { background: #f7c948; color: #1a1a2e; }
+.__sc-btn-close { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
+
+/* ── Toast ──────────────────────────────────────────────────────────────── */
+
+.__sc-toast {
+  all: initial;
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  z-index: 2147483647;
+  padding: 10px 20px;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  pointer-events: none;
+}
+
+.__sc-toast.__sc-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.__sc-toast-info  { background: #1a1a2e; color: #f7c948; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+.__sc-toast-error { background: #6f0000; color: #fff;    box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
