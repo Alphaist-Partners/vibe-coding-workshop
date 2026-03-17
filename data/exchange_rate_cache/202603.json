@@ -1,8 +1,0 @@
-{
-  "USD": {
-    "rate": 7.25,
-    "date": null,
-    "source": "中国人民银行外汇牌价（月首个交易日中间价）",
-    "source_url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/"
-  }
-}
