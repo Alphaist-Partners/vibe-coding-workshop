@@ -1,0 +1,17 @@
+{
+  "year": 2025,
+  "month": 3,
+  "fetch_date": "2025-03-03",
+  "source": "chinamoney",
+  "rates": {
+    "USD": 7.28,
+    "HKD": 0.934,
+    "EUR": 7.84,
+    "GBP": 9.18,
+    "JPY": 4.82,
+    "SGD": 5.38,
+    "AUD": 4.72,
+    "CAD": 5.28,
+    "CHF": 8.12
+  }
+}
